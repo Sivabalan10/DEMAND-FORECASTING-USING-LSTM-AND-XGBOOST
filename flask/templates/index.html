@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Comparison</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #333;
+            color: #f4f4f9;
+        }
+        h1 {
+            color: #ffd700;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        form {
+            background: #444;
+            padding: 35px;
+            border: 1px solid #555;
+            border-radius: 10px;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+        form div {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #666;
+            border-radius: 5px;
+            background: #555;
+            color: #fff;
+        }
+        button {
+            background-color: #ffd700;
+            color: #333;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #ffc107;
+        }
+        .results{
+            max-width: 700px;
+            text-align: center;
+        }
+        .input-res, .results {
+            
+            margin: 20px auto;
+            background: #444;
+            padding: 20px;
+            border: 1px solid #555;
+            border-radius: 10px;
+        }
+        .input-res h2, .results h2 {
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+        .input-res table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .input-res table, .input-res th, .input-res td {
+            border: 1px solid #666;
+        }
+        .input-res th, .input-res td {
+            padding: 10px;
+            text-align: left;
+        }
+        .input-res th {
+            background-color: #555;
+            color: #ffd700;
+            font-weight: bold;
+        }
+        .input-res td {
+            background-color: #666;
+            color: #f4f4f9;
+        }
+        .results p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        #loading {
+        display: none;
+        text-align: center;
+        color: #ffd700;
+        font-size: 18px;
+        font-weight: bold;
+        margin-top: 20px;
+    }
+    .section{
+        padding: 50px;
+        background-color: #1f1e1e;
+    }
+    .additional-section{
+        background-color: black;
+        border-radius: 40px;
+    }
+    </style>
+</head>
+<body>
+    <h1>Compare LSTM and XGBoost Predictions</h1>
+    <form method="POST" action="/predict">
+        <!-- Form fields remain the same as your original -->
+        <div>
+            <label for="Holiday_Flag">Holiday Flag (0 or 1):</label>
+            <input type="number" id="Holiday_Flag" name="Holiday_Flag" required>
+        </div>
+        <div>
+            <label for="Temperature">Temperature:</label>
+            <input type="text" id="Temperature" name="Temperature" required>
+        </div>
+        <div>
+            <label for="Fuel_Price">Fuel Price:</label>
+            <input type="text" id="Fuel_Price" name="Fuel_Price" required>
+        </div>
+        <div>
+            <label for="CPI">CPI:</label>
+            <input type="text" id="CPI" name="CPI" required>
+        </div>
+        <div>
+            <label for="Unemployment">Unemployment:</label>
+            <input type="text" id="Unemployment" name="Unemployment" required>
+        </div>
+        <div>
+            <label for="Year">Year:</label>
+            <input type="number" id="Year" name="Year" required>
+        </div>
+        <div>
+            <label for="Month">Month:</label>
+            <input type="number" id="Month" name="Month" required>
+        </div>
+        <div>
+            <label for="WeekOfYear">Week of Year:</label>
+            <input type="number" id="WeekOfYear" name="WeekOfYear" required>
+        </div>
+        <div>
+            <label for="DayOfWeek">Day of Week:</label>
+            <input type="number" id="DayOfWeek" name="DayOfWeek" required>
+        </div>
+        <div>
+            <label for="IsWeekend">Is Weekend (0 or 1):</label>
+            <input type="number" id="IsWeekend" name="IsWeekend" required>
+        </div>
+        <div>
+            <label for="Weekly_Sales_Lag_1">Weekly Sales Lag 1:</label>
+            <input type="text" id="Weekly_Sales_Lag_1" name="Weekly_Sales_Lag_1" required>
+        </div>
+        <div>
+            <label for="Weekly_Sales_MA_4">Weekly Sales Moving Average 4:</label>
+            <input type="text" id="Weekly_Sales_MA_4" name="Weekly_Sales_MA_4" required>
+        </div>
+        <button type="submit" onsubmit="showLoading()">Compare Models</button>
+    </form>
+    <div id="loading">Loading... Please wait.</div>
+
+    <div class="input-res" >
+        {% if result %}
+        <h2>Input Table:</h2>
+        <table>
+            <thead>
+                <tr>
+                    {% for key in result.keys() %}
+                    <th>{{ key }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    {% for value in result.values() %}
+                    <td>{{ value if value is string else value|join(', ') }}</td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+        
+        {% else %}
+        <p>No results available.</p>
+        {% endif %}
+    </div>
+    {% if xgb_prediction is not none and lstm_prediction is not none %}
+    <div class="results">
+        <h2>Predictions: Weekly Sales</h2>
+        <p style="color: aqua;"><strong>XGBoost Prediction:</strong> <b style="color: greenyellow;">{{ xgb_prediction }}</b></p>
+        <p style="color: aqua;"><strong>LSTM Prediction:</strong> <b style="color: greenyellow;">{{ lstm_prediction }}</b></p>
+    </div>
+    {% endif %}
+    <br>
+    <hr>
+    <br>
+    <div class="additional-sections">
+        <h1 style="text-decoration: underline;">CASE STUDY OF LSTM AND XGBOOST IN TIME SERIES FORECASTING</h1>
+        <!-- Accuracy Case Study Section -->
+        <div class="section" style="text-align: left;">
+            <h2 style="color: #ffd700;">Introduction: Steps to Evaluate Model Performance</h2>
+            <p>
+                Initially, the analysis began with <b>weekly sales data</b> as input for both models:  
+                <ul>
+                    <li>
+                        <span style="color: aqua;">Step 1:</span> Calculated accuracy metrics for both models.  
+                        <br><b>XGBoost:</b> Achieved <span style="color: lightgreen; font-weight: bold;">Training RMSE</span> of <b>102,547</b> and <span style="color: lightgreen; font-weight: bold;">Testing RMSE</span> of <b>94,783</b>, with a <span style="color: lightblue;">Testing R²</span> of <b>0.972</b>.  
+                        <br><b>LSTM:</b> Delivered a higher <span style="color: orange;">RMSE</span> of <b>107,846</b> and a <span style="color: orange;">lower R²</span> of <b>0.92</b>, indicating lesser initial accuracy.
+                    </li><br>
+                    <li>
+                        <span style="color: aqua;">Step 2:</span> Tested models with <b>custom inputs</b>.  
+                        <br><b>XGBoost:</b> Predicted <span style="color: coral;">inaccurately</span> for input ranges below <b>6 lakh</b>, showing a difference of <b>7 lakh</b> in weekly sales. Performed well only for <span style="color: coral;">higher input ranges</span>, such as lag and moving averages above <b>6 lakh</b>.  
+                        <br><b>LSTM:</b> Adapted better to <b>practical custom inputs</b>, providing <b>realistic predictions</b> even for input ranges significantly different from the mean.
+                    </li><br>
+                    <li>
+                        <span style="color: aqua;">Step 3:</span> Found the <b>average weekly sales</b> in the dataset to be <b>1,046,964.878</b>.  
+                        <br><b>XGBoost:</b> Was biased towards training data's high values, underperforming for <i>lower input ranges</i>.  
+                        <br><b>LSTM:</b> Captured the variability in data more effectively, making it a <b>better choice</b> for dynamic scenarios.
+                    </li><br>
+                </ul>
+            </p>
+        </div>
+        <!-- Accuracy Case Study Section -->
+<div class="section" style="text-align: left;">
+    <h2 style="color: #ffd700;">Accuracy Case Study</h2>
+    <p>
+        The analysis of <span style="color: aqua; font-weight: bold;">accuracy metrics</span> reveals intriguing insights:<br>  
+        For <span style="color: lightgreen; font-weight: bold;">XGBoost</span>, the <span style="color: orange;">Training RMSE</span> is <b>102,547</b> and <span style="color: orange;">Testing RMSE</span> is <b>94,783</b>, with a <span style="color: lightblue;">Testing R² Score</span> of <b>0.972</b>, indicating excellent performance for <i>high-range inputs</i>.  
+        <br><span style="color: lightgreen; font-weight: bold;">LSTM</span>, however, has a slightly higher RMSE of <b>107,846</b> and a <span style="color: lightblue;">R²</span> of <b>0.92</b>, suggesting moderate accuracy compared to XGBoost in training metrics.
+        <br><br>
+        Despite this, <span style="color: aqua; font-weight: bold;">custom input testing</span> reveals that <b>LSTM</b> outperforms <b>XGBoost</b> in <span style="color: coral;">practical prediction scenarios</span>, especially when values deviate significantly from the dataset's mean weekly sales of <b>1,046,964</b>.  
+    </p>
+</div>
+
+<!-- Model Workflow Comparison Section -->
+<div class="section" style="text-align: left;">
+    <h2 style="color: #ffd700;">Model Workflow Comparison</h2>
+    <p>
+        The <span style="color: lightgreen; font-weight: bold;">LSTM</span> model leverages a <b>sequential data processing</b> workflow, capturing temporal dependencies effectively.  
+        In contrast, <span style="color: lightgreen; font-weight: bold;">XGBoost</span> employs <b>gradient boosting trees</b>, which are ideal for <span style="color: orange;">non-temporal, feature-based predictions</span>.  
+        <br><br>
+        Notably, <b>XGBoost</b> struggled with low-range <span style="color: coral;">lag and moving average features</span> but excelled with higher ranges, showcasing its reliance on <i>scaled data points</i>. Meanwhile, <b>LSTM</b> consistently adapted to <span style="color: coral;">customized inputs</span>, making it more versatile for real-world scenarios.
+    </p>
+</div>
+
+<!-- Insights from Both Models Section -->
+<div class="section" style="text-align: left;">
+    <h2 style="color: #ffd700;">Insights from Both Models</h2>
+    <p>
+        <b>XGBoost:</b> Excels in <span style="color: lightgreen; font-weight: bold;">accuracy metrics</span> for the training set, making it highly reliable for <span style="color: orange;">larger datasets with high-value features</span>.  
+        <br><b>LSTM:</b> Demonstrates remarkable adaptability to <span style="color: coral;">realistic custom inputs</span>, capturing patterns better for outliers or unexpected scenarios.  
+        <br><br>
+        <span style="color: aqua; font-weight: bold;">Key Recommendation:<br></span> Use <b>XGBoost</b> for structured and large-scale datasets requiring precision in <i>value ranges near the mean</i>. Rely on <b>LSTM</b> for scenarios requiring <i>flexibility</i> and <i>pattern detection</i> in diverse or noisy inputs.
+    </p>
+</div>
+        
+        <!-- Result Section -->
+        <div class="section" style="text-align: left;">
+            <h2 style="color: #ffd700;">Result Summary</h2>
+            <p>
+                The comparison between <b>LSTM</b> and <b>XGBoost</b> highlights the following:  
+                <br><br><b>XGBoost:</b> Superior <span style="color: lightgreen;">accuracy metrics</span> for training data, but <span style="color: coral;">less effective</span> for <b>custom inputs</b>.  
+                <br><br><b>LSTM:</b> While it initially lagged in accuracy, it <span style="color: aqua; font-weight: bold;">excelled</span> in real-world prediction scenarios, showcasing its <i>ability to generalize</i> better.  
+                <br><br>
+                <span style="color: orange; font-weight: bold;">Conclusion:</span> LSTM proves to be the <b>preferred model</b> for practical applications, despite its lower accuracy score compared to XGBoost.
+            </p>
+        </div>
+
+       
+
+
+        <!-- Links to Colab Section -->
+        <div class="section" style="text-align: right;">
+            <hr>
+            <h1>Summary</h1>
+            <p style="text-align: justify;line-height: 2em;font-size: 20px;">
+                This case study revolves around comparing the performance of LSTM and XGBoost models for weekly sales prediction. The initial evaluation focused on standard accuracy metrics like RMSE and R², where XGBoost outperformed LSTM with superior scores. However, practical testing with custom inputs revealed a critical insight:
+    
+    <br><span style="color: #ffc107;">XGBoost Strengths:</span> The model demonstrated high accuracy when trained on larger sales values, performing exceptionally well for high-value inputs but failing for inputs significantly below the training range. This highlighted a limitation in its ability to generalize for diverse input ranges.
+    
+    <br><span style="color: #ffc107;">LSTM Strengths:</span> While its initial accuracy metrics were slightly lower, LSTM proved to be more adaptable to real-world input variations. It consistently provided realistic predictions, even when tested with values outside the average training range. This indicates LSTM's robustness in capturing patterns and trends in sequential data.
+    
+    <br><span style="color: #ffc107;">Key Insight:</span> XGBoost excels in scenarios where the input values closely align with the training dataset, while LSTM emerges as a better choice for dynamic or unpredictable real-world conditions, offering flexibility and reliability.
+    
+    <br><span style="color: #ffc107;">Conclusion: </span>The decision to use LSTM or XGBoost should depend on the context. If high-value accuracy is the priority and inputs match the dataset, XGBoost is preferred. For more versatile, adaptive predictions, LSTM is the superior choice.
+            </p>
+            <br><hr>
+            <h2 style="color: #ffd700;">Colab Notebooks</h2>
+            <p><a href="https://colab.research.google.com/" style="color: aqua;">View XGBoost Implementation</a></p>
+            <p><a href="https://colab.research.google.com/" style="color: aqua;">View LSTM Implementation</a></p>
+        </div>
+        <!-- Contribute Section -->
+        <div class="section" style="text-align: left;">
+            <h2 style="color: #ffd700;">Contribute</h2>
+            <p>Interested in improving this project? <a href="https://github.com/your-repo" style="color: aqua;">Contribute here on GitHub!</a></p>
+        
+          
+
+        </div>
+        
+       
+    </div>
+    
+    <script>
+        function showLoading() {
+            document.getElementById("loading").style.display = "block";
+            setTimeout(() => {
+                document.getElementById("loading").style.display = "none";
+            }, 3000); // Hides the animation after 3 seconds
+        }
+    </script>
+</body>
+</html>
